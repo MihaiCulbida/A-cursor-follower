@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Follower</title>
+  <style>
+    
+    body {
+      margin: 0;
+      background: #111;
+      overflow: hidden;
+      color: white;
+      font-family: sans-serif;
+    }
+    canvas {
+      display: block;
+    }
+
+    #settings {
+      position: fixed;
+      top: 10px;
+      left: 60px;
+      background: #1a1a1a;
+      padding: 15px;
+      border-radius: 8px;
+      display: none;
+    }
+    #settings label {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .btn-cont {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background-color: #1e1e1e;
+      border-radius: 10px;
+      z-index: 10;
+    }
+    .button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 10px;
+      border-radius: 5px;
+      position: relative;
+      transition: background-color 0.2s ease;
+    }
+    .button:hover .tooltip {
+      background-color: rgba(255, 255, 255, 0.1);
+      visibility: visible;
+      opacity: 1;
+    }
+    .settings-btn {
+      display: block;
+      transition: transform 0.4s ease-in;
+    }
+    .settings-btn:hover {
+      transform: rotate(60deg);
+    }
+    .settings-btn:active {
+      animation: rot 1s linear infinite;
+    }
+    @keyframes rot {
+      from { transform: rotate(-100deg); }
+      to { transform: rotate(180deg); }
+    }
+    .tooltip {
+      visibility: hidden;
+      width: 120px;
+      background-color: black;
+      color: #fff;
+      text-align: center;
+      border-radius: 5px;
+      padding: 5px;
+      position: absolute;
+      z-index: 1;
+      bottom: 125%;
+      left: 50%;
+      margin-left: -60px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="btn-cont">
+    <button class="button" id="settingsBtn">
+      <svg class="settings-btn" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24" fill="#e8eaed">
+        <path d="M370-80l-16-128q-13-5-24.5-12T307-235l-119 50L78-375l103-78q-1-7-1-13.5v-27q0-6.5 1-13.5L78-585l110-190 119 50q11-8 23-15t24-12l16-128h220l16 128q13 5 24.5 12t22.5 15l119-50 110 190-103 78q1 7 1 13.5v27q0 6.5-2 13.5l103 78-110 190-118-50q-11 8-23 15t-24 12L590-80H370Zm70-80h79l14-106q31-8 57.5-23.5T639-327l99 41 39-68-86-65q5-14 7-29.5t2-31.5q0-16-2-31.5t-7-29.5l86-65-39-68-99 42q-22-23-48.5-38.5T533-694l-13-106h-79l-14 106q-31 8-57.5 23.5T321-633l-99-41-39 68 86 64q-5 15-7 30t-2 32q0 16 2 31t7 30l-86 65 39 68 99-42q22 23 48.5 38.5T427-266l13 106Zm42-180q58 0 99-41t41-99q0-58-41-99t-99-41q-59 0-99.5 41T342-480q0 58 40.5 99t99.5 41Zm-2-140Z"/>
+      </svg>
+      <span class="tooltip">settings</span>
+    </button>
+  </div>
+
+  <div id="settings">
+    <label>
+      Length:
+      <input type="range" id="lengthSlider" min="10" max="200" value="60">
+      <span id="lengthValue">60</span>
+    </label>
+    <label>
+      Speed:
+      <input type="range" id="speedSlider" min="0.01" max="0.5" step="0.01" value="0.1">
+      <span id="speedValue">0.1</span>
+    </label>
+  </div>
+
+  <canvas id="canvas"></canvas>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    let w, h;
+    function resize() {
+      w = canvas.width = window.innerWidth;
+      h = canvas.height = window.innerHeight;
+    }
+    window.addEventListener("resize", resize);
+    resize();
+
+    let length = 60;
+    let speed = 0.1;
+    const size = 15;
+    let nodes = [];
+
+    function initNodes() {
+      nodes = [];
+      for (let i = 0; i < length; i++) {
+        nodes.push({x: w/2, y: h/2});
+      }
+    }
+    initNodes();
+
+    let mouse = {x: w/2, y: h/2};
+    window.addEventListener("mousemove", e => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+    });
+
+    const lengthSlider = document.getElementById("lengthSlider");
+    const lengthValue = document.getElementById("lengthValue");
+    lengthSlider.addEventListener("input", e => {
+      length = parseInt(e.target.value);
+      lengthValue.textContent = length;
+      initNodes();
+    });
+
+    const speedSlider = document.getElementById("speedSlider");
+    const speedValue = document.getElementById("speedValue");
+    speedSlider.addEventListener("input", e => {
+      speed = parseFloat(e.target.value);
+      speedValue.textContent = speed;
+    });
+
+    const settingsBtn = document.getElementById("settingsBtn");
+    const settingsMenu = document.getElementById("settings");
+    settingsBtn.addEventListener("click", () => {
+      if(settingsMenu.style.display === "none" || settingsMenu.style.display === "") {
+        settingsMenu.style.display = "block";
+      } else {
+        settingsMenu.style.display = "none";
+      }
+    });
+
+    function update() {
+      ctx.clearRect(0, 0, w, h);
+
+      let head = nodes[0];
+      head.x += (mouse.x - head.x) * speed;
+      head.y += (mouse.y - head.y) * speed;
+
+      for (let i = 1; i < nodes.length; i++) {
+        let prev = nodes[i-1];
+        let node = nodes[i];
+
+        let dx = node.x - prev.x;
+        let dy = node.y - prev.y;
+        let angle = Math.atan2(dy, dx);
+
+        node.x = prev.x + Math.cos(angle) * size;
+        node.y = prev.y + Math.sin(angle) * size;
+
+        let legLen = 10;
+        let offset = Math.PI/4;
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 1.5;
+
+        ctx.beginPath();
+        ctx.moveTo(node.x, node.y);
+        ctx.lineTo(
+          node.x + Math.cos(angle + offset) * legLen,
+          node.y + Math.sin(angle + offset) * legLen
+        );
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(node.x, node.y);
+        ctx.lineTo(
+          node.x + Math.cos(angle - offset) * legLen,
+          node.y + Math.sin(angle - offset) * legLen
+        );
+        ctx.stroke();
+      }
+
+      ctx.strokeStyle = "white";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(head.x, head.y);
+      for (let node of nodes) {
+        ctx.lineTo(node.x, node.y);
+      }
+      ctx.stroke();
+
+      requestAnimationFrame(update);
+    }
+
+    update();
+  </script>
+</body>
+</html>
